@@ -106,9 +106,10 @@
 
     <script>
         const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-        const UART_TX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+        // שינוי קריטי: 6e400003 מאפשר כתיבה מקבלת ב-micro:bit
+        const UART_RX_CHARACTERISTIC_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
-        let txCharacteristic = null;
+        let rxCharacteristic = null;
 
         function log(msg) {
             document.getElementById("log").innerText = msg;
@@ -118,7 +119,6 @@
             try {
                 log("מחפש מכשיר...");
                 const device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: false,
                     filters: [{ namePrefix: 'BBC micro:bit' }],
                     optionalServices: [UART_SERVICE_UUID]
                 });
@@ -129,8 +129,8 @@
                 log("מאתר שירות UART...");
                 const service = await server.getPrimaryService(UART_SERVICE_UUID);
                 
-                log("מאתר מאפיין כתיבה...");
-                txCharacteristic = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+                log("מאתר ערוץ כתיבה...");
+                rxCharacteristic = await service.getCharacteristic(UART_RX_CHARACTERISTIC_UUID);
 
                 const statusEl = document.getElementById("status");
                 statusEl.innerText = "מחובר!";
@@ -143,23 +143,16 @@
         }
 
         async function sendCmd(cmd) {
-            if (!txCharacteristic) {
+            if (!rxCharacteristic) {
                 log("לא מחובר!");
                 return;
             }
             try {
                 const encoder = new TextEncoder();
-                await txCharacteristic.writeValueWithoutResponse(encoder.encode(cmd + "\n"));
+                await rxCharacteristic.writeValue(encoder.encode(cmd + "\n"));
                 log("נשלח: " + cmd);
             } catch (error) {
-                // ניסיון נפילה לשיטה הרגילה אם writeValueWithoutResponse לא נתמך
-                try {
-                    const encoder = new TextEncoder();
-                    await txCharacteristic.writeValue(encoder.encode(cmd + "\n"));
-                    log("נשלח: " + cmd);
-                } catch (err2) {
-                    log("שגיאת שליחה: " + err2.message);
-                }
+                log("שגיאת שליחה: " + error.message);
             }
         }
     </script>
