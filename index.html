@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>שלט micro:bit לרכב</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        header {
+            padding: 10px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.6rem;
+        }
+
+        #st {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            background-color: #cf6679;
+            color: #000;
+            margin-bottom: 15px;
+        }
+
+        #st.connected {
+            background-color: #03dac6;
+        }
+
+        .btn-connect {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            background-color: #bb86fc;
+            color: #000;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .btn-connect:active {
+            transform: scale(0.98);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            width: 280px;
+            height: 280px;
+            margin: 20px auto;
+        }
+
+        .btn {
+            background-color: #2c2c2c;
+            border: 2px solid #444;
+            border-radius: 16px;
+            color: #fff;
+            font-size: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            transition: background-color 0.1s, transform 0.1s;
+        }
+
+        .btn:active, .btn.active {
+            background-color: #bb86fc;
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        .b-u { grid-column: 2; grid-row: 1; }
+        .b-l { grid-column: 1; grid-row: 2; }
+        .b-s { grid-column: 2; grid-row: 2; background-color: #cf6679; color: #000; font-size: 1rem; font-weight: bold; }
+        .b-r { grid-column: 3; grid-row: 2; }
+        .b-d { grid-column: 2; grid-row: 3; }
+
+        footer {
+            font-size: 0.8rem;
+            color: #888;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>שלט micro:bit לרכב</h1>
+        <div id="st">מנותק</div><br>
+        <button class="btn-connect" onclick="cn()">התחבר ל-micro:bit</button>
+    </header>
+
+    <main>
+        <div class="grid">
+            <button class="btn b-u" id="bF">▲</button>
+            <button class="btn b-l" id="bL">◄</button>
+            <button class="btn b-s" id="bS">עצור</button>
+            <button class="btn b-r" id="bR">►</button>
+            <button class="btn b-d" id="bB">▼</button>
+        </div>
+    </main>
+
+    <footer>
+        באנדרואיד: Chrome | באייפון: Bluefy
+    </footer>
+
+    <script>
+        const UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+        const UART_TX_CHARACTERISTIC_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+
+        let bluetoothDevice = null;
+        let tx = null;
+
+        async function cn() {
+            try {
+                let stEl = document.getElementById("st");
+                stEl.innerText = " מחפש...";
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: "BBC micro:bit" }],
+                    optionalServices: [UART_SERVICE_UUID]
+                });
+
+                stEl.innerText = "מתחבר...";
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService(UART_SERVICE_UUID);
+                tx = await service.getCharacteristic(UART_TX_CHARACTERISTIC_UUID);
+
+                stEl.innerText = "מחובר!";
+                stEl.classList.add("connected");
+            } catch (e) {
+                console.error(e);
+                document.getElementById("st").innerText = "שגיאה / מנותק";
+            }
+        }
+
+        async function send(c) {
+            if (tx) {
+                try {
+                    await tx.writeValue((new TextEncoder()).encode(c + "\n"));
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+
+        function setup(id, c) {
+            let b = document.getElementById(id);
+            let on = (e) => { e.preventDefault(); b.classList.add("active"); send(c); };
+            let off = (e) => { e.preventDefault(); b.classList.remove("active"); send("S"); };
+            b.addEventListener("touchstart", on);
+            b.addEventListener("touchend", off);
+            b.addEventListener("touchcancel", off);
+            b.addEventListener("mousedown", on);
+            b.addEventListener("mouseup", off);
+        }
+
+        setup("bF", "F");
+        setup("bB", "B");
+        setup("bL", "L");
+        setup("bR", "R");
+        document.getElementById("bS").addEventListener("click", () => send("S"));
+    </script>
+</body>
+</html>
