@@ -48,6 +48,7 @@
             justify-content: center;
             align-items: center;
             margin: 0 auto;
+            direction: ltr; /* שומר על סדר המקשים שמאל-מרכז-ימין ללא היפוך עברית */
         }
         .btn-ctrl {
             background-color: #2c2c2c;
@@ -60,6 +61,8 @@
             align-items: center;
             cursor: pointer;
             touch-action: manipulation;
+            width: 80px;
+            height: 80px;
         }
         .btn-ctrl:active {
             background-color: #bb86fc;
@@ -68,7 +71,7 @@
         .btn-stop {
             background-color: #cf6679;
             color: #000;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
         }
         .empty { visibility: hidden; }
